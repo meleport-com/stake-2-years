@@ -7,7 +7,7 @@ use std::fmt;
 pub const STAKERS_INFO: Map<Addr, StakerInfoResponse> = Map::new("stakers_info_response");
 
 /// Store the owenr info
-pub const OWNER_INFO: Item<OwnerInfo> = Item::new("owner_info");
+pub const CONTRACT_INFO: Item<ContractInfo> = Item::new("contract_info");
 
 /// Store the whitelist
 pub const WHITELIST: Item<Vec<Addr>> = Item::new("whitelist");
@@ -22,11 +22,12 @@ pub struct StakerInfoResponse {
 
 // We difine a struct for Owner
 #[cw_serde]
-pub struct OwnerInfo {
+pub struct ContractInfo {
     pub owner: Addr,
+    pub denom: String,
 }
 
-impl fmt::Display for OwnerInfo {
+impl fmt::Display for ContractInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.owner)
     }

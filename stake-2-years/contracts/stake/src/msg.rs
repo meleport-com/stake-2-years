@@ -1,24 +1,38 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Uint128};
+use cosmwasm_std::{Addr, Uint128, DistributionQuery};
 
 #[cw_serde]
 pub struct InstantiateMsg {
     /// whitelist is a list of addresses that are allowed to undelegate or claim rewards
     pub whitelist: Option<Vec<Addr>>,
+    pub denom: String,
 }
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    /// Deposit staked tokens and collect reward tokens (if any)
-    Deposit {
+    /// Delegate staked tokens and collect reward tokens (if any)
+    Delegate {
         validator: Addr,
         amount: Uint128,
     },
-    /// Withdraw staked tokens and collect reward tokens (if any)
-    Withdraw {
+    /// Undelegate staked tokens and collect reward tokens (if any)
+    Undelegate {
         validator: Addr,
         amount: Uint128,
     },
-    // // Harvest reward tokens
-    // Harvest {},
+    // WithdrawDelegatorReward reward tokens
+    WithdrawDelegatorReward {
+        validator: Addr,
+    },
+    // Claim all tokens from the contract to the owner
+    Claim {},
+}
+
+#[cw_serde]
+#[derive(QueryResponses)]
+pub enum QueryMsg {
+    #[returns(Uint128)]
+    TotalDelegatorReward {
+        delegator: Addr,
+    },
 }
