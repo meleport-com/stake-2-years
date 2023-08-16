@@ -5,7 +5,7 @@ use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     coin, has_coins, to_binary, Addr, BalanceResponse, BankMsg, BankQuery, Binary, Coin, CosmosMsg,
     Decimal, Deps, DepsMut, Env, MessageInfo, QuerierWrapper, QueryRequest, Response, StdError,
-    StdResult, SubMsg, Uint128, WasmMsg, WasmQuery, Delegation, StakingMsg, DistributionMsg,
+    StdResult, SubMsg, Uint128, WasmMsg, WasmQuery, Delegation, StakingMsg, DistributionMsg, FullDelegation,
 };
 
 use cw2::set_contract_version;
@@ -231,13 +231,21 @@ pub fn execute_claim(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::TotalDelegatorReward { delegator } => Ok(to_binary(&query_total_delegator_reward(deps, delegator.to_string())?)?),
+        QueryMsg::Delegation { delegator } => Ok(to_binary(&query_delegation(deps, delegator.to_string())?)?),
+        QueryMsg::FullDelegation { delegator, validator } => Ok(to_binary(&query_full_delegation(deps, delegator.to_string(), validator.to_string())?)?),
     }
 }
 
-pub fn query_total_delegator_reward(deps: Deps, delegator: String) -> Result<Vec<Delegation>, StdError> {
+pub fn query_delegation(deps: Deps, delegator: String) -> Result<Vec<Delegation>, StdError> {
 
     let res: Vec<Delegation> = deps.querier.query_all_delegations(&delegator)?;
+
+    Ok(res)
+}
+
+pub fn query_full_delegation(deps: Deps, delegator: String, validator: String) -> Result<Option<FullDelegation>, StdError> {
+
+    let res = deps.querier.query_delegation(&delegator, &validator)?;
 
     Ok(res)
 }

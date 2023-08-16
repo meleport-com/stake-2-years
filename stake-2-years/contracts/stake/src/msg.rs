@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Uint128, DistributionQuery};
+use cosmwasm_std::{Addr, Uint128, DistributionQuery, Delegation, FullDelegation};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -31,8 +31,13 @@ pub enum ExecuteMsg {
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
-    #[returns(Uint128)]
-    TotalDelegatorReward {
+    #[returns(Delegation)]
+    Delegation {
         delegator: Addr,
+    },
+    #[returns(FullDelegation)]
+    FullDelegation {
+        delegator: Addr,
+        validator: Addr,
     },
 }
