@@ -13,7 +13,7 @@ use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg}
 
 use crate::{
     error::ContractError,
-    msg::{InstantiateMsg, ExecuteMsg}, state::{StakeInfo, STAKE_INFO, STAKERS_INFO}
+    msg::{InstantiateMsg, ExecuteMsg}, state::{OwnerInfo, OWNER_INFO, STAKERS_INFO, WHITELIST}
 };
 
 // version info for migration info
@@ -24,22 +24,27 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     // Init stake info
-    let stake_info = StakeInfo {
-        validators_list: msg.validator_list,
+    let owner = OwnerInfo {
+        owner: info.sender,
     };
 
     // Save stake info
-    STAKE_INFO.save(deps.storage, &stake_info)?;
+    OWNER_INFO.save(deps.storage, &owner)?;
+
+    // Save whitelist
+    if let Some(whitelist) = msg.whitelist {
+        WHITELIST.save(deps.storage, &whitelist)?;
+    }
 
     Ok(Response::new().add_attributes([
         ("method", "instantiate"),
-        ("stake_info", &stake_info.to_string()),
+        ("owner", &owner.to_string()),
     ]))
 }
 
@@ -52,7 +57,7 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Deposit { validator, amount } => execute_deposit(deps, env, info, validator, amount),
-        // ExecuteMsg::Withdraw { amount } => execute_withdraw(deps, env, info, amount),
+        ExecuteMsg::Withdraw { validator, amount } => execute_withdraw(deps, env, info, validator, amount),
         // ExecuteMsg::Harvest {} => execute_harvest(deps, env, info),
     }
 }
@@ -75,7 +80,7 @@ pub fn execute_deposit(
     // let staker_info = STAKERS_INFO.load(deps.storage, &info.sender)?;
 
     // Get the stake info
-    let stake_info = STAKE_INFO.load(deps.storage)?;
+    let stake_info = OWNER_INFO.load(deps.storage)?;
     let mut res = Response::new();
     // Check if the validator is in the list
     // if !stake_info.validators_list.contains(&validator) {
@@ -95,11 +100,57 @@ pub fn execute_deposit(
     // STAKERS_INFO.save(deps.storage, &staker_info)?;
 
     // Stake to the validator
-    let stake = SubMsg::new(CosmosMsg::Staking(StakingMsg::Delegate {
+    let delegate = SubMsg::new(CosmosMsg::Staking(StakingMsg::Delegate {
         validator: validator.to_string(),
         amount: coin(amount.u128(), "ueaura"),
     }));
 
 
-    Ok(res.add_submessage(stake))
+    Ok(res.add_submessage(delegate))
+}
+
+pub fn execute_withdraw(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    validator: Addr,
+    amount: Uint128,
+) -> Result<Response, ContractError> {
+    // Get the staker's info
+    // let staker_info = STAKERS_INFO.load(deps.storage, &info.sender)?;
+
+    // Get the stake info
+    let stake_info = OWNER_INFO.load(deps.storage)?;
+    let mut res = Response::new();
+    // Check if the validator is in the list
+    // if !stake_info.validators_list.contains(&validator) {
+    //     return Err(ContractError::ValidatorNotInList {});
+    // }
+
+    // Get the current time
+    let now = env.block.time;
+
+    // Save the staker's info
+    // let staker_info = StakerInfoResponse {
+    //     staker: info.sender.clone(),
+    //     amount: amount,
+    //     joined_time: now,
+    //     expired_time: now + 2 * 365 * 24 * 60 * 60,
+    // };
+    // STAKERS_INFO.save(deps.storage, &staker_info)?;
+
+    // Undelegate from the validator
+    let undelegate = SubMsg::new(CosmosMsg::Staking(StakingMsg::Undelegate {
+        validator: validator.to_string(),
+        amount: coin(amount.u128(), "ueaura"),
+    }));
+
+    // Tranfer all the staked tokens to the staker
+    let transfer = SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+        to_address: info.sender.to_string(),
+        amount: vec![coin(amount.u128(), "ueaura")],
+    }));
+
+    Ok(res.add_submessage(undelegate)
+            .add_submessage(transfer))
 }

@@ -6,9 +6,11 @@ use std::fmt;
 /// Mappping from staker address to staker balance.
 pub const STAKERS_INFO: Map<Addr, StakerInfoResponse> = Map::new("stakers_info_response");
 
-/// Store the stake info
-/// This is the list of validators to stake on
-pub const STAKE_INFO: Item<StakeInfo> = Item::new("stake_info");
+/// Store the owenr info
+pub const OWNER_INFO: Item<OwnerInfo> = Item::new("owner_info");
+
+/// Store the whitelist
+pub const WHITELIST: Item<Vec<Addr>> = Item::new("whitelist");
 
 #[cw_serde]
 pub struct StakerInfoResponse {
@@ -18,18 +20,14 @@ pub struct StakerInfoResponse {
     pub expired_time: u64, // When the user's stake will expire.
 }
 
-// We difine a struct for StakeInfo
+// We difine a struct for Owner
 #[cw_serde]
-pub struct StakeInfo {
-    pub validators_list: Vec<Addr>,
+pub struct OwnerInfo {
+    pub owner: Addr,
 }
 
-impl fmt::Display for StakeInfo {
+impl fmt::Display for OwnerInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "validators_list: [")?;
-        for validator in &self.validators_list {
-            write!(f, "{}, ", validator)?;
-        }
-        write!(f, "]")
+        write!(f, "{}", self.owner)
     }
 }
